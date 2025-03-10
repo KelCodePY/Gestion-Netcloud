@@ -1,1 +1,4 @@
-requirements.txt
+telethon
+gspread
+oauth2client
+unidecode
