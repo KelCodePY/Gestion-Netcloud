@@ -4,7 +4,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 import asyncio
 import re
 import unidecode
-from difflib import SequenceMatcher
 import os
 
 # 📌 CONFIGURATION TELEGRAM
@@ -13,20 +12,26 @@ API_HASH = os.getenv("API_HASH")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 if not API_ID or not API_HASH or not BOT_TOKEN:
-    raise Exception("API_ID, API_HASH ou BOT_TOKEN manquants!")
+    raise Exception("❌ API_ID, API_HASH ou BOT_TOKEN manquants! Vérifie tes variables d'environnement.")
 
 # 📌 ID DES GROUPES & CANAUX
 STOCKAGE_FILM = -1002314286062  
 GROUPE_FILMS = "NetCloud_Films"  
 
 # 🔹 Correspondance des genres avec les sujets du groupe
-GENRE_TO_THREAD = {"Action": 5, "Drame": 6, "Science-Fiction": 7, "Animation": 12, 
+GENRE_TO_THREAD = {
+    "Action": 5, "Drame": 6, "Science-Fiction": 7, "Animation": 12, 
     "Policier": 13, "Documentaire": 14, "Thriller": 10, "Aventure": 8, 
-    "Horreur": 11, "Comédie": 4, "Fantastique": 9}
+    "Horreur": 11, "Comédie": 4, "Fantastique": 9
+}
 
 # 📊 CONFIGURATION GOOGLE SHEETS
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 CREDS_FILE = "gestion-films-453309-bd7ac526c981.json"
+
+if not os.path.exists(CREDS_FILE):
+    raise Exception(f"❌ Fichier {CREDS_FILE} introuvable. Vérifie ton déploiement sur Render!")
+
 gc = gspread.authorize(ServiceAccountCredentials.from_json_keyfile_name(CREDS_FILE, SCOPE))
 sheet = gc.open("liste film NETCLOUD TOUS").sheet1
 
@@ -46,8 +51,7 @@ def normalize_title(title):
 def get_next_row():
     """ Trouve la prochaine ligne disponible et ajoute des lignes si nécessaire """
     records = sheet.get_all_records(expected_headers=["N°", "Titre du film", "Lien Telegram", "PUBLIÉ", "Genre"])
-    next_row = len(records) + 1
-    return next_row
+    return len(records) + 1
 
 @client.on(events.NewMessage(chats=STOCKAGE_FILM))
 async def handle_new_movie(event):
