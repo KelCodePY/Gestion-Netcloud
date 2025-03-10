@@ -8,9 +8,12 @@ from difflib import SequenceMatcher
 import os
 
 # 📌 CONFIGURATION TELEGRAM
-API_ID = 24273523  
-API_HASH = "MLP"  
-BOT_TOKEN = "Telegram_Token"  
+API_ID = os.getenv("API_ID")
+API_HASH = os.getenv("API_HASH")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+if not API_ID or not API_HASH or not BOT_TOKEN:
+    raise Exception("API_ID, API_HASH ou BOT_TOKEN manquants!")
 
 # 📌 ID DES GROUPES & CANAUX
 STOCKAGE_FILM = -1002314286062  
