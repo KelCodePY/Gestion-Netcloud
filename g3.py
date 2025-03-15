@@ -47,6 +47,12 @@ def get_next_row():
     records = sheet.get_all_records(expected_headers=["N°", "Titre du film", "Lien Telegram", "PUBLIÉ", "Genre"])
     return len(records) + 1
 
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "NetCloud Bot API is running!", 200
+
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
     await event.respond("👋 Bienvenue sur le bot NetCloud Films ! Envoyez un film dans le bon format pour qu'il soit publié.")
@@ -127,17 +133,9 @@ async def send_video(event, title):
     except Exception as e:
         print(f"❌ [ERREUR] Problème lors de l'envoi de la vidéo : {e}")
 
-# 🌐 API Flask
-app = Flask(__name__)
-
-@app.route("/status")
-def status():
-    return jsonify({"status": "Bot actif"})
-
 if __name__ == "__main__":
-    PORT = int(os.getenv("PORT", 5000))
-    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=PORT, debug=False, use_reloader=False)).start()
     print("✅ [LOG] Bot démarré...")
+    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=10000)).start()
     try:
         client.run_until_disconnected()
     except KeyboardInterrupt:
