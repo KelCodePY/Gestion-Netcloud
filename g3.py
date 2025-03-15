@@ -39,31 +39,39 @@ pending_movies = {}
 video_queue = []
 
 def normalize_title(title):
-    """ Nettoie et normalise le titre pour éviter les erreurs de correspondance """
     title = unidecode.unidecode(title)
     title = re.sub(r"[^a-zA-Z0-9 ]", "", title)
     return re.sub(r"\s+", " ", title.strip().lower())
 
 def get_next_row():
-    """ Trouve la prochaine ligne disponible et ajoute des lignes si nécessaire """
     records = sheet.get_all_records(expected_headers=["N°", "Titre du film", "Lien Telegram", "PUBLIÉ", "Genre"])
     return len(records) + 1
+
+@client.on(events.NewMessage(pattern='/start'))
+async def start(event):
+    await event.respond("👋 Bienvenue sur le bot NetCloud Films ! Envoyez un film dans le bon format pour qu'il soit publié.")
+    print("[LOG] Commande /start exécutée par", event.sender_id)
 
 @client.on(events.NewMessage(chats=STOCKAGE_FILM))
 async def handle_new_movie(event):
     global pending_movies, video_queue
+    
+    print("[LOG] Nouveau message reçu dans le stockage de films")
 
     if event.photo and event.text:
+        print("[LOG] Message avec photo détecté")
         message_text = event.raw_text.strip()
         lines = message_text.split("\n")
         
         if len(lines) < 2 or "Genre - " not in lines[1]:
+            print("[LOG] Format du message incorrect, ignoré")
             return
         
         title = normalize_title(lines[0].replace("Titre - ", ""))
         genre = lines[1].replace("Genre - ", "").strip().capitalize()
         
         if genre not in GENRE_TO_THREAD:
+            print(f"[LOG] Genre '{genre}' non reconnu, ignoré")
             return
         
         thread_id = GENRE_TO_THREAD[genre]
@@ -74,14 +82,16 @@ async def handle_new_movie(event):
         
         next_row = get_next_row()
         sheet.update(f"B{next_row}:E{next_row}", [[title, f"https://t.me/{GROUPE_FILMS}/{sent_message.id}", "✅", genre]])
-        
+        print(f"[LOG] Film '{title}' publié et enregistré dans Google Sheets")
+
         for video in video_queue[:]:
             if normalize_title(video["text"]) == title:
                 await send_video(video["event"], title)
                 video_queue.remove(video)
                 break  
-
+    
     elif event.video:
+        print("[LOG] Message avec vidéo détecté")
         caption_text = event.text.strip() if event.text else ""
         
         if caption_text == "_" or caption_text == "":
@@ -93,12 +103,14 @@ async def handle_new_movie(event):
         if title_found:
             await send_video(event, title_found)
         else:
+            print("[LOG] Vidéo mise en attente")
             video_queue.append({"event": event, "text": caption_text})
 
 async def send_video(event, title):
     global pending_movies
-
+    
     try:
+        print(f"[LOG] Envoi de la vidéo pour '{title}'")
         data = pending_movies[title]
         sent_video = await client.send_file(
             f"@{GROUPE_FILMS}", event.video, caption=event.text.replace("_", ""), reply_to=data["message_id"]
@@ -111,34 +123,14 @@ async def send_video(event, title):
                 break
 
         del pending_movies[title]
+        print(f"[LOG] Vidéo pour '{title}' envoyée et mise à jour dans Google Sheets")
     except Exception as e:
-        print(f"❌ Erreur lors de l'envoi de la vidéo : {e}")
-
-# 🚀 SERVEUR FLASK
-app = Flask(__name__)
-
-@app.route("/")
-def home():
-    return "✅ Bot Telegram et serveur Flask en cours d’exécution !"
-
-@app.route("/status")
-def status():
-    return jsonify({"status": "running", "pending_movies": list(pending_movies.keys()), "video_queue": len(video_queue)})
-
-def run_flask():
-    PORT = int(os.getenv("PORT", 8080))
-    print(f"🌍 Serveur Flask lancé sur le port {PORT}...")
-    app.run(host="0.0.0.0", port=PORT, debug=False, use_reloader=False)
+        print(f"❌ [ERREUR] Problème lors de l'envoi de la vidéo : {e}")
 
 if __name__ == "__main__":
-    print("✅ Bot et serveur démarrés...")
-    
-    # Lancer Flask dans un thread séparé
-    threading.Thread(target=run_flask, daemon=True).start()
-    
-    # Lancer le bot Telegram
+    print("✅ [LOG] Bot démarré...")
     try:
         client.run_until_disconnected()
     except KeyboardInterrupt:
-        print("❌ Bot arrêté.")
+        print("❌ [LOG] Bot arrêté.")
         os._exit(0)
