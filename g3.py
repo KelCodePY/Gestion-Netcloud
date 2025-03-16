@@ -96,8 +96,8 @@ async def handle_new_movie(event):
                 video_queue.remove(video)
                 break  
     
-    elif event.video:
-        print("[LOG] Message avec vidéo détecté")
+    elif event.video or event.document:
+        print("[LOG] Message avec vidéo ou fichier détecté")
         caption_text = event.text.strip() if event.text else ""
         
         if caption_text == "_" or caption_text == "":
@@ -109,7 +109,7 @@ async def handle_new_movie(event):
         if title_found:
             await send_video(event, title_found)
         else:
-            print("[LOG] Vidéo mise en attente")
+            print("[LOG] Vidéo ou fichier mis en attente")
             video_queue.append({"event": event, "text": caption_text})
 
 async def send_video(event, title):
@@ -119,7 +119,7 @@ async def send_video(event, title):
         print(f"[LOG] Envoi de la vidéo pour '{title}'")
         data = pending_movies[title]
         sent_video = await client.send_file(
-            f"@{GROUPE_FILMS}", event.video, caption=event.text.replace("_", ""), reply_to=data["message_id"]
+            f"@{GROUPE_FILMS}", event.media, caption=event.text.replace("_", ""), reply_to=data["message_id"]
         )
         
         records = sheet.get_all_records(expected_headers=["N°", "Titre du film", "Lien Telegram", "PUBLIÉ", "Genre"])
@@ -129,9 +129,9 @@ async def send_video(event, title):
                 break
 
         del pending_movies[title]
-        print(f"[LOG] Vidéo pour '{title}' envoyée et mise à jour dans Google Sheets")
+        print(f"[LOG] Vidéo ou fichier pour '{title}' envoyé et mis à jour dans Google Sheets")
     except Exception as e:
-        print(f"❌ [ERREUR] Problème lors de l'envoi de la vidéo : {e}")
+        print(f"❌ [ERREUR] Problème lors de l'envoi de la vidéo ou fichier : {e}")
 
 if __name__ == "__main__":
     print("✅ [LOG] Bot démarré...")
