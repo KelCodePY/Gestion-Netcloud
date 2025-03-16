@@ -88,11 +88,7 @@ async def handle_new_movie(event):
         
         next_row = get_next_row()
         sheet.update(f"B{next_row}:E{next_row}", [[title, f"https://t.me/{GROUPE_FILMS}/{sent_message.id}", "✅", genre]])
-        
-        # Ajout automatique d'une ligne vide en dessous
-        sheet.insert_row(["", "", "", "", ""], next_row + 1)
-
-        print(f"[LOG] Film '{title}' publié et enregistré dans Google Sheets avec une ligne vide en dessous")
+        print(f"[LOG] Film '{title}' publié et enregistré dans Google Sheets")
 
         for video in video_queue[:]:
             if normalize_title(video["text"]) == title:
@@ -139,7 +135,7 @@ async def send_video(event, title):
 
 if __name__ == "__main__":
     print("✅ [LOG] Bot démarré...")
-    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=10000)).start()
+    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=8080)).start()
     try:
         client.run_until_disconnected()
     except KeyboardInterrupt:
